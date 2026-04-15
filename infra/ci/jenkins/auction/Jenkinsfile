@@ -1,0 +1,84 @@
+pipeline {
+    agent any
+
+    environment {
+        IMAGE_NAME = "ghcr.io/opticSquid/auction-server"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+        APP_DIR = "app"
+
+        DEPLOY_REPO = "https://github.com/opticSquid/auction-server-deploy.git"
+        DEPLOY_BRANCH = "main"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir("${APP_DIR}") {
+                    sh '''
+                        go mod tidy
+                        go test ./... -v
+                    '''
+                }
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                sh '''
+                    docker build -t $IMAGE_NAME:$IMAGE_TAG ./app
+                '''
+            }
+        }
+
+        stage('Login to GHCR') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'ghcr-creds',
+                    usernameVariable: 'GITHUB_USER',
+                    passwordVariable: 'GITHUB_TOKEN'
+                )]) {
+                    sh '''
+                        echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Image') {
+            steps {
+                sh '''
+                    docker push $IMAGE_NAME:$IMAGE_TAG
+                '''
+            }
+        }
+
+        stage('Update Deployment Repo') {
+            steps {
+                sshagent(['github-ssh']) {
+                    sh '''
+                        rm -rf deploy-repo
+                        git clone git@github.com:opticSquid/auction-server-deploy.git deploy-repo
+
+                        cd deploy-repo/envs/dev
+
+                        sed -i "s/tag:.*/tag: \\"${IMAGE_TAG}\\"/" values.yaml
+
+                        git config user.email "jenkins@local"
+                        git config user.name "jenkins"
+
+                        git add values.yaml
+                        git commit -m "Update image tag to ${IMAGE_TAG}"
+                        git push origin main
+                    '''
+                }
+            }
+        }
+    }
+}
