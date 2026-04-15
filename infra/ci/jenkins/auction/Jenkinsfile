@@ -30,6 +30,9 @@ pipeline {
         }
 
         stage('Build Image') {
+            when {
+                branch 'main'
+            }
             steps {
                 sh '''
                     docker build -t $IMAGE_NAME:$IMAGE_TAG ./app
@@ -38,6 +41,9 @@ pipeline {
         }
 
         stage('Login to GHCR') {
+            when {
+                branch 'main'
+            }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'ghcr-creds',
@@ -52,6 +58,9 @@ pipeline {
         }
 
         stage('Push Image') {
+            when {
+                branch 'main'
+            }
             steps {
                 sh '''
                     docker push $IMAGE_NAME:$IMAGE_TAG
@@ -60,6 +69,9 @@ pipeline {
         }
 
         stage('Update Deployment Repo') {
+            when {
+                branch 'main'
+            }
             steps {
                 sshagent(['github-ssh']) {
                     sh '''
