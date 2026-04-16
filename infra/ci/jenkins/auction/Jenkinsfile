@@ -34,11 +34,13 @@ spec:
 
         stage('Test') {
             steps {
-                dir("${APP_DIR}") {
-                    sh '''
-                        go mod tidy
-                        go test ./... -v
-                    '''
+                container('go') {
+                    dir("${APP_DIR}") {
+                        sh '''
+                            go mod tidy
+                            go test ./... -v
+                        '''
+                    }
                 }
             }
         }
