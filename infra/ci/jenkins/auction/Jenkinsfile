@@ -1,5 +1,19 @@
 pipeline {
-    agent any
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: go
+    image: golang:1.25
+    command:
+    - cat
+    tty: true
+"""
+        }
+    }
 
     environment {
         IMAGE_NAME = "ghcr.io/opticSquid/auction-server"
