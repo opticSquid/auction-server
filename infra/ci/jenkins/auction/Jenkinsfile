@@ -36,7 +36,6 @@ spec:
             steps {
                 dir("${APP_DIR}") {
                     sh '''
-                        cd ./app
                         go mod tidy
                         go test ./... -v
                     '''
