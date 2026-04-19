@@ -1,0 +1,6 @@
+application:
+  name: auction-server
+
+server:
+  port: 8080
+  basepath: /auction
